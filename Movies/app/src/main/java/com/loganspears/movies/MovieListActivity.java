@@ -10,6 +10,7 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,8 +18,16 @@ import android.widget.TextView;
 
 
 import com.loganspears.movies.dummy.DummyContent;
+import com.loganspears.movies.model.Movie;
+import com.loganspears.movies.networking.MovieResponse;
+import com.loganspears.movies.networking.TheMovieDbClient;
+import com.loganspears.movies.networking.TheMovieDbService;
 
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * An activity representing a list of Movies. This activity
@@ -45,15 +54,6 @@ public class MovieListActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         View recyclerView = findViewById(R.id.movie_list);
         assert recyclerView != null;
         setupRecyclerView((RecyclerView) recyclerView);
@@ -65,6 +65,24 @@ public class MovieListActivity extends AppCompatActivity {
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
+
+        TheMovieDbService service = TheMovieDbClient.getClient(this).create(TheMovieDbService.class);
+
+        Call<MovieResponse> call = service.getPopularMovies();
+        call.enqueue(new Callback<MovieResponse>() {
+            @Override
+            public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
+                MovieResponse movieResponse = response.body();
+                for (Movie movie : movieResponse.getResults()){
+                    Log.d("MOVIES", movie.getTitle());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<MovieResponse> call, Throwable t) {
+
+            }
+        });
     }
 
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
