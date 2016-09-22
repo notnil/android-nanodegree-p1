@@ -1,7 +1,9 @@
 package com.loganspears.movies;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.Toolbar;
@@ -9,6 +11,9 @@ import android.view.View;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.ActionBar;
 import android.view.MenuItem;
+
+import com.google.gson.Gson;
+import com.loganspears.movies.model.Movie;
 
 /**
  * An activity representing a single Movie detail screen. This
@@ -18,6 +23,8 @@ import android.view.MenuItem;
  */
 public class MovieDetailActivity extends AppCompatActivity {
 
+    private Movie movie;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,19 +32,16 @@ public class MovieDetailActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.detail_toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own detail action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         // Show the Up button in the action bar.
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
+        }
+
+        if (getIntent().hasExtra(MovieDetailFragment.ARG_MOVIE_JSON)){
+            String movieJson = getIntent().getStringExtra(MovieDetailFragment.ARG_MOVIE_JSON);
+            movie = new Gson().fromJson(movieJson, Movie.class);
+            setTitle(movie.getTitle());
         }
 
         // savedInstanceState is non-null when there is fragment state
@@ -53,8 +57,8 @@ public class MovieDetailActivity extends AppCompatActivity {
             // Create the detail fragment and add it to the activity
             // using a fragment transaction.
             Bundle arguments = new Bundle();
-            arguments.putString(MovieDetailFragment.ARG_ITEM_ID,
-                    getIntent().getStringExtra(MovieDetailFragment.ARG_ITEM_ID));
+            arguments.putString(MovieDetailFragment.ARG_MOVIE_JSON,
+                    getIntent().getStringExtra(MovieDetailFragment.ARG_MOVIE_JSON));
             MovieDetailFragment fragment = new MovieDetailFragment();
             fragment.setArguments(arguments);
             getSupportFragmentManager().beginTransaction()
