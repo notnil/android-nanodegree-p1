@@ -1,28 +1,35 @@
 package com.loganspears.movies;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
+import android.preference.Preference;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.BaseAdapter;
+import android.widget.GridView;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-
-import com.loganspears.movies.dummy.DummyContent;
+import com.google.gson.Gson;
 import com.loganspears.movies.model.Movie;
+import com.loganspears.movies.model.MovieOrder;
 import com.loganspears.movies.networking.MovieResponse;
 import com.loganspears.movies.networking.TheMovieDbClient;
 import com.loganspears.movies.networking.TheMovieDbService;
+import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -54,10 +61,6 @@ public class MovieListActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setTitle(getTitle());
 
-        View recyclerView = findViewById(R.id.movie_list);
-        assert recyclerView != null;
-        setupRecyclerView((RecyclerView) recyclerView);
-
         if (findViewById(R.id.movie_detail_container) != null) {
             // The detail container view will be present only in the
             // large-screen layouts (res/values-w900dp).
@@ -65,96 +68,119 @@ public class MovieListActivity extends AppCompatActivity {
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshMovies();
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.movies_list_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.preferences:
+                Intent intent = new Intent(this, SettingsActivity.class);
+                startActivity(intent);
+                //
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void refreshMovies() {
+        final ProgressDialog mDialog = new ProgressDialog(this);
+        mDialog.setMessage(getString(R.string.movie_list_loading));
+        mDialog.setCancelable(false);
+        mDialog.show();
 
         TheMovieDbService service = TheMovieDbClient.getClient(this).create(TheMovieDbService.class);
 
         Call<MovieResponse> call = service.getPopularMovies();
+        if (getMovieOrder() == MovieOrder.HIGHEST_RATED){
+            call = service.getTopRatedMovies();
+        }
         call.enqueue(new Callback<MovieResponse>() {
             @Override
             public void onResponse(Call<MovieResponse> call, Response<MovieResponse> response) {
                 MovieResponse movieResponse = response.body();
                 for (Movie movie : movieResponse.getResults()){
-                    Log.d("MOVIES", movie.getTitle());
+                    Log.d("MOVIES", movie.getTitle() + " " + Integer.toString(movie.getId()));
                 }
+                GridView gridView = (GridView) findViewById(R.id.movie_grid);
+                gridView.setAdapter(new MovieGridAdapter(MovieListActivity.this, movieResponse.getResults()));
+                mDialog.hide();
             }
-
             @Override
             public void onFailure(Call<MovieResponse> call, Throwable t) {
-
+                Toast.makeText(MovieListActivity.this, R.string.movie_list_no_connection, Toast.LENGTH_SHORT).show();
+                Log.d("MOVIES", t.getMessage());
+                mDialog.hide();
             }
         });
     }
 
-    private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(DummyContent.ITEMS));
+    private MovieOrder getMovieOrder() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String value = preferences.getString(SettingsActivity.KEY_PREF_SORT_ORDER, MovieOrder.MOST_POPULAR.getName());
+        return MovieOrder.fromString(value);
     }
 
-    public class SimpleItemRecyclerViewAdapter
-            extends RecyclerView.Adapter<SimpleItemRecyclerViewAdapter.ViewHolder> {
+    private static class MovieGridAdapter extends BaseAdapter {
+        private Context mContext;
+        private final List<Movie> movies;
 
-        private final List<DummyContent.DummyItem> mValues;
-
-        public SimpleItemRecyclerViewAdapter(List<DummyContent.DummyItem> items) {
-            mValues = items;
+        public MovieGridAdapter(Context c, List<Movie> movies) {
+            this.mContext = c;
+            this.movies = new ArrayList<>(movies);
         }
 
         @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.movie_list_content, parent, false);
-            return new ViewHolder(view);
+        public int getCount() {
+            return movies.size();
         }
 
         @Override
-        public void onBindViewHolder(final ViewHolder holder, int position) {
-            holder.mItem = mValues.get(position);
-            holder.mIdView.setText(mValues.get(position).id);
-            holder.mContentView.setText(mValues.get(position).content);
+        public Object getItem(int position) {
+            return movies.get(position);
+        }
 
-            holder.mView.setOnClickListener(new View.OnClickListener() {
+        @Override
+        public long getItemId(int position) {
+            return movies.get(position).getId();
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View grid;
+            LayoutInflater inflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            if (convertView == null) {
+                grid = inflater.inflate(R.layout.movie_list_content, null);
+            } else {
+                grid = convertView;
+            }
+            final Movie movie = movies.get(position);
+            ImageView imageView = (ImageView)grid.findViewById(R.id.imageView);
+            Picasso.with(mContext).load(movie.getPosterPath()).into(imageView);
+            imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if (mTwoPane) {
-                        Bundle arguments = new Bundle();
-                        arguments.putString(MovieDetailFragment.ARG_ITEM_ID, holder.mItem.id);
-                        MovieDetailFragment fragment = new MovieDetailFragment();
-                        fragment.setArguments(arguments);
-                        getSupportFragmentManager().beginTransaction()
-                                .replace(R.id.movie_detail_container, fragment)
-                                .commit();
-                    } else {
-                        Context context = v.getContext();
-                        Intent intent = new Intent(context, MovieDetailActivity.class);
-                        intent.putExtra(MovieDetailFragment.ARG_ITEM_ID, holder.mItem.id);
-
-                        context.startActivity(intent);
-                    }
+                    Intent intent = new Intent(mContext, MovieDetailActivity.class);
+                    intent.putExtra(MovieDetailFragment.ARG_MOVIE_JSON, new Gson().toJson(movie));
+                    mContext.startActivity(intent);
                 }
             });
-        }
-
-        @Override
-        public int getItemCount() {
-            return mValues.size();
-        }
-
-        public class ViewHolder extends RecyclerView.ViewHolder {
-            public final View mView;
-            public final TextView mIdView;
-            public final TextView mContentView;
-            public DummyContent.DummyItem mItem;
-
-            public ViewHolder(View view) {
-                super(view);
-                mView = view;
-                mIdView = (TextView) view.findViewById(R.id.id);
-                mContentView = (TextView) view.findViewById(R.id.content);
-            }
-
-            @Override
-            public String toString() {
-                return super.toString() + " '" + mContentView.getText() + "'";
-            }
+            return grid;
         }
     }
 }
