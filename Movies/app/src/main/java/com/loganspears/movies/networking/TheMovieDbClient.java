@@ -26,7 +26,7 @@ public class TheMovieDbClient {
                 @Override
                 public Response intercept(Chain chain) throws IOException {
                     String apiKey = context.getString(R.string.themoviedb_api_key);
-                    // http://stackoverflow.com/questions/32948083/is-there-a-way-to-add-query-parameter-to-every-request-with-retrofit-2
+                    // found on http://stackoverflow.com/questions/32948083/is-there-a-way-to-add-query-parameter-to-every-request-with-retrofit-2
                     Request request = chain.request();
                     HttpUrl url = request.url()
                             .newBuilder()
