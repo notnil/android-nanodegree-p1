@@ -17,4 +17,6 @@
     <string name="movie_list_loading">Loading movies…</string>
     <string name="movie_detail_loading">Loading movie details…</string>
     <string name="movie_list_no_connection">Could not retrieve movies.  Please check your connection and try again.</string>
+    <string name="movie_details_no_connection">Could not retrieve movie details.  Please check your connection and try again.</string>
+    <string name="move_detail_unsupported_video_type">Can\'t play unsupported video type.</string>
 </resources>

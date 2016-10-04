@@ -177,6 +177,7 @@ public class MovieListActivity extends AppCompatActivity {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if ()
                     Intent intent = new Intent(mContext, MovieDetailActivity.class);
                     intent.putExtra(MovieDetailFragment.ARG_MOVIE_JSON, new Gson().toJson(movie));
                     mContext.startActivity(intent);

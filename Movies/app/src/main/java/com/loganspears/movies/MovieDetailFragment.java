@@ -2,6 +2,9 @@ package com.loganspears.movies;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -18,6 +21,7 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.loganspears.movies.model.Movie;
+import com.loganspears.movies.model.MovieDetail;
 import com.loganspears.movies.model.Review;
 import com.loganspears.movies.networking.ReviewResponse;
 import com.loganspears.movies.networking.TheMovieDbClient;
@@ -87,16 +91,9 @@ public class MovieDetailFragment extends Fragment {
         Picasso.with(getActivity()).load(movie.getPosterPath()).into(posterImageView);
 
         videoListView = (ListView) rootView.findViewById(R.id.listView1);
-        videoListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Video video = videoList.get(position);
-                if (video.isYoutubeVideo()){
-                    startActivity(video.getYoutubeIntent());
-                }
-            }
-        });
+        videoListView.setOnItemClickListener(getOnItemClickListener(videoList));
+        reviewListView = (ListView) rootView.findViewById(R.id.listView2);
+        reviewListView.setOnItemClickListener(getOnItemClickListener(reviewList));
 
         return rootView;
     }
@@ -123,17 +120,18 @@ public class MovieDetailFragment extends Fragment {
             public void onResponse(Call<ReviewResponse> call, Response<ReviewResponse> response) {
                 ReviewResponse reviewResponse = response.body();
                 reviewList = reviewResponse.getResults();
+                reviewListView.setAdapter(new MovieDetailAdapter(getActivity(), reviewList));
+                reviewListView.setOnItemClickListener(getOnItemClickListener(reviewList));
                 mDialog.hide();
             }
             @Override
             public void onFailure(Call<ReviewResponse> call, Throwable t) {
-                Toast.makeText(getActivity(), R.string.movie_list_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), R.string.movie_details_no_connection, Toast.LENGTH_SHORT).show();
                 Log.d("DETAIL", t.getMessage());
                 mDialog.hide();
             }
         });
     }
-
 
     private void refreshVideos() {
         final ProgressDialog mDialog = new ProgressDialog(getActivity());
@@ -150,20 +148,58 @@ public class MovieDetailFragment extends Fragment {
             public void onResponse(Call<VideoResponse> call, Response<VideoResponse> response) {
                 VideoResponse videoResponse = response.body();
                 videoList = videoResponse.getVideoList();
-                List<String> titles = new ArrayList<>();
-                for (Video video : videoList) {
-                    titles.add(video.getName());
-                }
-                ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, titles);
-                mListView.setAdapter(adapter);
+                videoListView.setAdapter(new MovieDetailAdapter(getActivity(), videoList));
+                videoListView.setOnItemClickListener(getOnItemClickListener(videoList));
                 mDialog.hide();
             }
             @Override
             public void onFailure(Call<VideoResponse> call, Throwable t) {
-                Toast.makeText(getActivity(), R.string.movie_list_no_connection, Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), R.string.movie_details_no_connection, Toast.LENGTH_SHORT).show();
                 Log.d("DETAIL", t.getMessage());
                 mDialog.hide();
             }
         });
+    }
+
+    private AdapterView.OnItemClickListener getOnItemClickListener(final List list) {
+        return new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                MovieDetail movieDetail = (MovieDetail) list.get(position);
+                Intent intent = movieDetail.getIntent();
+                if (intent != null){
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(getActivity(), R.string.move_detail_unsupported_video_type, Toast.LENGTH_SHORT).show();
+                }
+            }
+        };
+    }
+
+    private static class MovieDetailAdapter extends ArrayAdapter  {
+
+        public MovieDetailAdapter(Context context, List objects) {
+            super(context, android.R.layout.simple_list_item_2, objects);
+        }
+
+        @NonNull
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View row;
+            LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            if (convertView == null) {
+                row = inflater.inflate(android.R.layout.simple_list_item_2, null);
+            } else {
+                row = convertView;
+            }
+            MovieDetail movieDetail = (MovieDetail) getItem(position);
+            TextView primaryContentTextView = (TextView) row.findViewById(android.R.id.text1);
+            TextView secondaryContentTextView = (TextView) row.findViewById(android.R.id.text2);
+            primaryContentTextView.setText(movieDetail.getPrimaryContent());
+            secondaryContentTextView.setText(movieDetail.getSecondaryContent());
+            return row;
+        }
+
+
     }
 }

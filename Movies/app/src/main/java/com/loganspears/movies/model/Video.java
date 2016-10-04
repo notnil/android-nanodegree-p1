@@ -6,7 +6,7 @@ import android.net.Uri;
 /**
  * Created by logan on 9/29/16.
  */
-public final class Video {
+public final class Video implements MovieDetail{
     private static final String VIDEO_SITE_YOUTUBE = "YouTube";
     private static final String VIDEO_TYPE_TRAILER = "Trailer";
 
@@ -29,7 +29,11 @@ public final class Video {
         return name;
     }
 
-    public boolean isYoutubeVideo() {
+    public String getSite() {
+        return site;
+    }
+
+    private boolean isYoutubeVideo() {
         return VIDEO_SITE_YOUTUBE.equals(site) && VIDEO_TYPE_TRAILER.equals(type) && key != null;
     }
 
@@ -38,5 +42,34 @@ public final class Video {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(url));
         return intent;
+    }
+
+
+    @Override
+    public String toString() {
+        return "Video{" +
+                "key='" + key + '\'' +
+                ", name='" + name + '\'' +
+                ", site='" + site + '\'' +
+                ", type='" + type + '\'' +
+                '}';
+    }
+
+    @Override
+    public String getPrimaryContent() {
+        return getName();
+    }
+
+    @Override
+    public String getSecondaryContent() {
+        return getSite();
+    }
+
+    @Override
+    public Intent getIntent() {
+        if (isYoutubeVideo()) {
+            return getYoutubeIntent();
+        }
+        return null;
     }
 }
