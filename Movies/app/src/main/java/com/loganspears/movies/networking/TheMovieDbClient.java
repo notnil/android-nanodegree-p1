@@ -39,7 +39,7 @@ public class TheMovieDbClient {
 
             retrofit = new Retrofit.Builder()
                     .client(client)
-                    .baseUrl("https://api.themoviedb.org/3/movie/")
+                    .baseUrl("https://api.themoviedb.org/3/")
                     .addConverterFactory(GsonConverterFactory.create())
                     .build();
         }

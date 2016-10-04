@@ -15,5 +15,6 @@
 
     <string name="menu_settings">Settings</string>
     <string name="movie_list_loading">Loading movies…</string>
+    <string name="movie_detail_loading">Loading movie details…</string>
     <string name="movie_list_no_connection">Could not retrieve movies.  Please check your connection and try again.</string>
 </resources>

@@ -73,33 +73,8 @@ public class MovieListActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        Log.d(MovieListActivity.class.getName(), "onStart");
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        Log.d(MovieListActivity.class.getName(), "onStop");
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        Log.d(MovieListActivity.class.getName(), "onDestroy");
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.d(MovieListActivity.class.getName(), "onPause");
-    }
-    @Override
     protected void onResume() {
         super.onResume();
-        Log.d(MovieListActivity.class.getName(), "onResume");
-
         refreshMovies();
     }
 

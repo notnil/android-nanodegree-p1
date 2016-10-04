@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Created by logan on 9/20/16.
  */
-public class MovieResponse {
+public final class MovieResponse {
 
     @SerializedName("page")
     private final int page;

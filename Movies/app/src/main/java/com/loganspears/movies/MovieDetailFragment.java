@@ -1,22 +1,40 @@
 package com.loganspears.movies;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.loganspears.movies.model.Movie;
+import com.loganspears.movies.model.Review;
+import com.loganspears.movies.networking.ReviewResponse;
+import com.loganspears.movies.networking.TheMovieDbClient;
+import com.loganspears.movies.networking.TheMovieDbService;
+import com.loganspears.movies.model.Video;
+import com.loganspears.movies.networking.VideoResponse;
 import com.squareup.picasso.Picasso;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * A fragment representing a single Movie detail screen.
@@ -25,23 +43,16 @@ import java.util.Locale;
  * on handsets.
  */
 public class MovieDetailFragment extends Fragment {
-    /**
-     * The fragment argument representing the item ID that this fragment
-     * represents.
-     */
+
     public static final String ARG_MOVIE_JSON = "movie_json";
 
-    /**
-     * The dummy content this fragment is presenting.
-     */
     private Movie movie;
+    private List<Review> reviewList;
+    private List<Video> videoList;
+    private ListView videoListView;
+    private ListView reviewListView;
 
-    /**
-     * Mandatory empty constructor for the fragment manager to instantiate the
-     * fragment (e.g. upon screen orientation changes).
-     */
-    public MovieDetailFragment() {
-    }
+    public MovieDetailFragment() {}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -74,6 +85,85 @@ public class MovieDetailFragment extends Fragment {
         voteAvgTextView.setText("Vote Average: " + movie.getVoteAverage());
         overviewTextView.setText(movie.getOverview());
         Picasso.with(getActivity()).load(movie.getPosterPath()).into(posterImageView);
+
+        videoListView = (ListView) rootView.findViewById(R.id.listView1);
+        videoListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Video video = videoList.get(position);
+                if (video.isYoutubeVideo()){
+                    startActivity(video.getYoutubeIntent());
+                }
+            }
+        });
+
         return rootView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshVideos();
+        refreshReviews();
+    }
+
+    private void refreshReviews() {
+        final ProgressDialog mDialog = new ProgressDialog(getActivity());
+        mDialog.setMessage(getString(R.string.movie_detail_loading));
+        mDialog.setCancelable(false);
+        mDialog.show();
+
+        TheMovieDbService service = TheMovieDbClient.getClient(getActivity()).create(TheMovieDbService.class);
+
+        String movieId = Integer.toString(movie.getId());
+        Call<ReviewResponse> reviewResponseCall = service.getReviews(movieId);
+        reviewResponseCall.enqueue(new Callback<ReviewResponse>() {
+            @Override
+            public void onResponse(Call<ReviewResponse> call, Response<ReviewResponse> response) {
+                ReviewResponse reviewResponse = response.body();
+                reviewList = reviewResponse.getResults();
+                mDialog.hide();
+            }
+            @Override
+            public void onFailure(Call<ReviewResponse> call, Throwable t) {
+                Toast.makeText(getActivity(), R.string.movie_list_no_connection, Toast.LENGTH_SHORT).show();
+                Log.d("DETAIL", t.getMessage());
+                mDialog.hide();
+            }
+        });
+    }
+
+
+    private void refreshVideos() {
+        final ProgressDialog mDialog = new ProgressDialog(getActivity());
+        mDialog.setMessage(getString(R.string.movie_detail_loading));
+        mDialog.setCancelable(false);
+        mDialog.show();
+
+        TheMovieDbService service = TheMovieDbClient.getClient(getActivity()).create(TheMovieDbService.class);
+
+        String movieId = Integer.toString(movie.getId());
+        Call<VideoResponse> videoResponseCall = service.getTrailers(movieId);
+        videoResponseCall.enqueue(new Callback<VideoResponse>() {
+            @Override
+            public void onResponse(Call<VideoResponse> call, Response<VideoResponse> response) {
+                VideoResponse videoResponse = response.body();
+                videoList = videoResponse.getVideoList();
+                List<String> titles = new ArrayList<>();
+                for (Video video : videoList) {
+                    titles.add(video.getName());
+                }
+                ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, titles);
+                mListView.setAdapter(adapter);
+                mDialog.hide();
+            }
+            @Override
+            public void onFailure(Call<VideoResponse> call, Throwable t) {
+                Toast.makeText(getActivity(), R.string.movie_list_no_connection, Toast.LENGTH_SHORT).show();
+                Log.d("DETAIL", t.getMessage());
+                mDialog.hide();
+            }
+        });
     }
 }
