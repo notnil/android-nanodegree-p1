@@ -138,11 +138,11 @@ public class MovieListActivity extends AppCompatActivity {
         return MovieOrder.fromString(value);
     }
 
-    private static class MovieGridAdapter extends BaseAdapter {
+    private class MovieGridAdapter extends BaseAdapter {
         private Context mContext;
         private final List<Movie> movies;
 
-        public MovieGridAdapter(Context c, List<Movie> movies) {
+        MovieGridAdapter(Context c, List<Movie> movies) {
             this.mContext = c;
             this.movies = new ArrayList<>(movies);
         }
@@ -177,10 +177,19 @@ public class MovieListActivity extends AppCompatActivity {
             imageView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    if ()
-                    Intent intent = new Intent(mContext, MovieDetailActivity.class);
-                    intent.putExtra(MovieDetailFragment.ARG_MOVIE_JSON, new Gson().toJson(movie));
-                    mContext.startActivity(intent);
+                    if (mTwoPane) {
+                        Bundle arguments = new Bundle();
+                        arguments.putString(MovieDetailFragment.ARG_MOVIE_JSON, new Gson().toJson(movie));
+                        MovieDetailFragment fragment = new MovieDetailFragment();
+                        fragment.setArguments(arguments);
+                        getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.movie_detail_container, fragment)
+                            .commit();
+                    } else {
+                        Intent intent = new Intent(mContext, MovieDetailActivity.class);
+                        intent.putExtra(MovieDetailFragment.ARG_MOVIE_JSON, new Gson().toJson(movie));
+                        mContext.startActivity(intent);
+                    }
                 }
             });
             return grid;
